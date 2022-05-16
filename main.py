@@ -1,79 +1,118 @@
+import os
+import sys
 import tkinter as tk
 from tkinter import filedialog as fd
+
 import cv2.cv2 as cp
-from select_cood import getCod
+import numpy as np
+from PIL import ImageFont, ImageDraw, Image
+
 from certificate_generator import writeName
-def getCorrected(x):
-    try:
-        x = cp.getTrackbarPos("Scale", "Scaling")/10
-    except cp.error:
-        x = 1
-    try:
-        y = cp.getTrackbarPos("Thickness", "Scaling")
-    except cp.error:
-        y = 2
-    try:
-        z = cp.getTrackbarPos("Text", "Scaling")
-    except cp.error:
-        z = 0
-    image = cp.imread(cer_path)
-    cp.putText(image, "MANASH DAS", cord, text[z], x, (0, 0, 0), y)
-    print(text[z])
-    cp.imshow("certificate", image)
-
-
-def chooseFile(type):
-    global cord, cer_path,name_path,target_path
-    if type == 'Certificate':
-        cer_path = fd.askopenfilename()
-    elif type == 'Name':
-        name_path = fd.askopenfilename()
-    elif type =='Save':
-        target_path = fd.askdirectory()
-    else:
-        cord = getCod(cer_path)
-        root.destroy()
-
-
-def onchange(x):
-    if x==1:
-        writeName(cer_path,cord,name_path,target_path)
-
+from select_cood import getCod
 
 target_path = ''
-font_path = ''
 name_path = ''
 cer_path = ''
+text_path = "C:\\Windows\\Fonts"
+text = []
+font_type = ''
+font_size = 30
 cord = (0, 0)
+if os.path.exists:
+    for file in os.listdir(text_path):
+        if file.endswith(".ttf"):
+            text.append(file)
+else:
+    sys.exit(1)
+
+
+def getCorrected(x):
+    global font_type, font_size
+    font_size = text_size_scale.get()
+    font_type = text_path + "\\" + menu.get()
+    image = cp.imread(cer_path)
+    image = cp.cvtColor(image, cp.COLOR_BGR2RGB)
+    pilImage = Image.fromarray(image)
+    draw = ImageDraw.Draw(pilImage)
+    font = ImageFont.truetype(font_type, font_size)
+    draw.text((cord[0] + x_scale.get(), cord[1] + y_scale.get()), "Manash Das", font=font, fill='black')
+    opencvImage = cp.cvtColor(np.array(pilImage), cp.COLOR_RGB2BGR)
+    cp.imshow("Display", opencvImage)
+
+
+def chooseFile(file_type):
+    global cord, cer_path, name_path, target_path
+    if file_type == 'Certificate':
+        cer_path = fd.askopenfilename()
+        v1.set(cer_path)
+    elif file_type == 'Name':
+        name_path = fd.askopenfilename()
+        v2.set(name_path)
+    elif file_type == 'Save':
+        target_path = fd.askdirectory()
+        v3.set(target_path)
+    else:
+        if v1.get() =='' or v2.get()=='' or v3.get()=='':
+            return
+        cord = getCod(cer_path)
+        root.quit()
+
+
+def onchange():
+    coordinate = (cord[0] + x_scale.get(), cord[1] + y_scale.get())
+    root.destroy()
+    cp.destroyWindow("Display")
+    writeName(cer_path, coordinate, name_path, target_path, font_size, font_type)
+
+
 root = tk.Tk()
 root.title("Certificate Generator")
-cer_btn = tk.Button(root, text="Upload certificate", command=lambda: chooseFile("Certificate"))
-cer_btn.grid(row=0, column=0)
-name_btn = tk.Button(root, text="Upload names", command=lambda: chooseFile("Name"))
-name_btn.grid(row=1, column=0)
-name_btn = tk.Button(root, text="Save", command=lambda: chooseFile("Save"))
-name_btn.grid(row=2, column=0)
-name_btn = tk.Button(root, text="Get coordinate", command=lambda: chooseFile("Done"))
-name_btn.grid(row=3, column=0)
+v1 = tk.StringVar()
+v2 = tk.StringVar()
+v3 = tk.StringVar()
+cer_btn = tk.Button(root, text="Upload certificate", command=lambda: chooseFile("Certificate")).grid(row=0, column=0)
+cer_label = tk.Entry(root, text="", width=50, textvariable=v1).grid(row=0, column=1)
+
+name_btn = tk.Button(root, text="Upload names", command=lambda: chooseFile("Name")).grid(row=1, column=0)
+name_label = tk.Entry(root, text="", width=50, textvariable=v2).grid(row=1, column=1)
+
+Output_btn = tk.Button(root, text="Save", command=lambda: chooseFile("Save")).grid(row=2, column=0)
+Output_label = tk.Entry(root, text="", width=50, textvariable=v3).grid(row=2, column=1)
+
+tk.Button(root, text="Get coordinate", command=lambda: chooseFile("Done")).grid(row=3, column=0)
+
 root.mainloop()
-cp.destroyAllWindows()
+root.destroy()
 
-text = [cp.FONT_HERSHEY_SIMPLEX,cp.FONT_HERSHEY_PLAIN,cp.FONT_HERSHEY_DUPLEX,cp.FONT_HERSHEY_COMPLEX,
-        cp.FONT_HERSHEY_TRIPLEX,cp.FONT_HERSHEY_COMPLEX_SMALL,cp.FONT_HERSHEY_SCRIPT_SIMPLEX,
-        cp.FONT_HERSHEY_SCRIPT_COMPLEX]
+################# For second Process ################
+root = tk.Tk()
+root.geometry('500x300')
 
-cp.namedWindow("Scaling")
-cp.resizeWindow("Scaling",300,200)
-image = cp.imread(cer_path)
-cp.putText(image, "MANASH DAS", cord, cp.FONT_HERSHEY_COMPLEX, 2, (0, 0, 0), 1)
-cp.imshow("certificate", image)
+################ Select text Size ###################
+text_size_scale = tk.Scale(root, from_=1, to_=100, command=getCorrected, orient=tk.HORIZONTAL, label="Text Size",length=600)
+text_size_scale.set(font_size)
+text_size_scale.pack(anchor=tk.CENTER)
 
-cp.createTrackbar("Scale", "Scaling", 2, 20, getCorrected)
-cp.createTrackbar("Thickness", "Scaling", 2, 20, getCorrected)
-cp.createTrackbar("Text", "Scaling", 3, 7, getCorrected)
-cp.createTrackbar("Completed", "Scaling", 0, 1, onchange)
+############### Moving text x_axis ################
+x_scale = tk.Scale(root, from_=-100, to_=100, command=getCorrected, orient=tk.HORIZONTAL, label="x_axis", length=600)
+x_scale.set(0)
+x_scale.pack(anchor=tk.CENTER)
 
+############### Moving text y_axis ################
+y_scale = tk.Scale(root, from_=-100, to_=100, command=getCorrected, orient=tk.HORIZONTAL, label="y_axis", length=600)
+y_scale.set(-font_size)
+y_scale.pack(anchor=tk.CENTER)
 
+############## Select Text ##################
+menu = tk.StringVar()
+menu.set(text[10])
+drop = tk.OptionMenu(root, menu, *text, command=getCorrected)
+drop.pack()
 
-cp.waitKey(0)
-cp.destroyAllWindows()
+############# Button for completition #############
+done_btn = tk.Button(root, text="Done", command=onchange)
+done_btn.pack()
+
+############## Reading the  image ##################
+getCorrected(10)
+root.mainloop()
